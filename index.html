@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="АнтиФрод">
+<meta name="description" content="AI-защита от мошенников — проверяй подозрительные сообщения мгновенно">
+<link rel="manifest" href="manifest.json">
+<title>АнтиФрод</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg2: #12121a;
+  --bg3: #1a1a26;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --accent: #5b4fff;
+  --accent2: #7c6fff;
+  --text: #f0f0f8;
+  --text2: rgba(240,240,248,0.55);
+  --text3: rgba(240,240,248,0.28);
+  --danger: #ff4757;
+  --danger-bg: rgba(255,71,87,0.12);
+  --warn: #ffa502;
+  --warn-bg: rgba(255,165,2,0.12);
+  --safe: #2ed573;
+  --safe-bg: rgba(46,213,115,0.12);
+  --radius: 18px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Onest', sans-serif; overflow: hidden; }
+
+/* SPLASH */
+#splash {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 100; transition: opacity 0.4s ease;
+}
+#splash.gone { opacity: 0; pointer-events: none; }
+.splash-logo { font-family: 'Unbounded', sans-serif; font-size: 28px; font-weight: 700; color: var(--text); margin-top: 16px; }
+.splash-sub { font-size: 13px; color: var(--text3); margin-top: 8px; letter-spacing: 0.05em; }
+.shield-anim { width: 80px; height: 80px; position: relative; }
+.shield-anim svg { animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+/* LAYOUT */
+#app { display: flex; flex-direction: column; height: 100%; }
+
+/* HEADER */
+.header {
+  padding: 52px 20px 16px;
+  background: linear-gradient(180deg, var(--bg) 0%, transparent 100%);
+  position: relative; z-index: 10;
+}
+.header-inner { display: flex; align-items: center; justify-content: space-between; }
+.logo-mark { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.logo-icon svg { width: 20px; height: 20px; }
+.logo-text { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 700; }
+.header-stats { display: flex; gap: 6px; }
+.stat-pill {
+  background: var(--bg3); border: 0.5px solid var(--border);
+  border-radius: 99px; padding: 5px 12px;
+  font-size: 12px; color: var(--text2);
+  display: flex; align-items: center; gap: 5px;
+}
+.stat-pill span { font-weight: 500; color: var(--text); }
+
+/* TABS */
+.tabs {
+  display: flex; padding: 0 20px; gap: 4px; margin-bottom: 2px;
+}
+.tab-btn {
+  flex: 1; padding: 10px 6px; font-family: 'Onest', sans-serif; font-size: 13px;
+  font-weight: 400; color: var(--text3); background: none; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s;
+  letter-spacing: 0.01em;
+}
+.tab-btn.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 500; }
+
+/* CONTENT */
+.content { flex: 1; overflow-y: auto; padding: 16px 20px 100px; -webkit-overflow-scrolling: touch; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* CHECK PANEL */
+.input-card {
+  background: var(--bg2); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 14px;
+}
+.src-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.src-btn {
+  font-size: 12px; padding: 5px 13px; border-radius: 99px;
+  border: 0.5px solid var(--border); background: none; color: var(--text2);
+  font-family: 'Onest', sans-serif; cursor: pointer; transition: all 0.15s;
+}
+.src-btn.active { background: rgba(91,79,255,0.2); border-color: var(--accent); color: var(--accent2); }
+.msg-textarea {
+  width: 100%; background: var(--bg3); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px; font-family: 'Onest', sans-serif;
+  font-size: 15px; color: var(--text); resize: none; outline: none;
+  min-height: 110px; line-height: 1.6; transition: border-color 0.2s;
+}
+.msg-textarea::placeholder { color: var(--text3); }
+.msg-textarea:focus { border-color: var(--border2); }
+.char-count { text-align: right; font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+.check-btn {
+  width: 100%; padding: 16px; font-family: 'Unbounded', sans-serif; font-size: 14px;
+  font-weight: 600; color: #fff; background: var(--accent);
+  border: none; border-radius: var(--radius); cursor: pointer;
+  letter-spacing: 0.02em; transition: all 0.2s; position: relative; overflow: hidden;
+}
+.check-btn:active { transform: scale(0.98); }
+.check-btn:disabled { opacity: 0.5; }
+.check-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+}
+
+/* LOADING */
+.loading {
+  display: flex; align-items: center; gap: 12px;
+  padding: 20px; color: var(--text2); font-size: 14px;
+}
+.dot-loader { display: flex; gap: 5px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: dots 1.2s ease-in-out infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dots { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+/* RESULT */
+.result-card {
+  background: var(--bg2); border-radius: var(--radius);
+  overflow: hidden; margin-top: 14px;
+  border: 0.5px solid var(--border);
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.result-hero {
+  padding: 20px; display: flex; align-items: center; gap: 16px;
+}
+.score-ring {
+  width: 72px; height: 72px; flex-shrink: 0; position: relative;
+}
+.score-ring svg { transform: rotate(-90deg); }
+.score-num {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.score-val { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; }
+.score-max { font-size: 10px; color: var(--text3); }
+.result-info { flex: 1; min-width: 0; }
+.risk-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500; padding: 4px 12px;
+  border-radius: 99px; margin-bottom: 6px;
+}
+.risk-high { background: var(--danger-bg); color: var(--danger); }
+.risk-med { background: var(--warn-bg); color: var(--warn); }
+.risk-low { background: var(--safe-bg); color: var(--safe); }
+.result-verdict { font-size: 14px; font-weight: 500; line-height: 1.4; }
+.fraud-type {
+  font-size: 11px; color: var(--danger); margin-top: 4px;
+  background: var(--danger-bg); padding: 2px 8px; border-radius: 99px;
+  display: inline-block;
+}
+
+.result-section { padding: 14px 20px; border-top: 0.5px solid var(--border); }
+.section-label { font-size: 11px; font-weight: 500; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+.tags-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  font-size: 12px; padding: 4px 11px; border-radius: 99px; border: 0.5px solid;
+}
+.tag-d { background: var(--danger-bg); color: var(--danger); border-color: rgba(255,71,87,0.25); }
+.tag-w { background: var(--warn-bg); color: var(--warn); border-color: rgba(255,165,2,0.25); }
+.tag-ok { background: var(--safe-bg); color: var(--safe); border-color: rgba(46,213,115,0.25); }
+.explain-text { font-size: 14px; color: var(--text2); line-height: 1.7; }
+.advice-box {
+  background: rgba(91,79,255,0.1); border: 0.5px solid rgba(91,79,255,0.3);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  font-size: 14px; color: var(--accent2); line-height: 1.6;
+}
+
+/* PROGRESS */
+.prog-wrap { height: 5px; background: var(--bg3); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+.prog-bar { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+
+/* HISTORY */
+.history-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+.history-empty svg { margin-bottom: 14px; opacity: 0.3; }
+.hist-item {
+  background: var(--bg2); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 12px;
+  animation: slideUp 0.2s ease;
+}
+.hist-src { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--bg3); color: var(--text3); flex-shrink: 0; }
+.hist-txt { flex: 1; font-size: 13px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-score { font-family: 'Unbounded', sans-serif; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+
+/* TIPS */
+.tips-header { font-family: 'Unbounded', sans-serif; font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.tip-item {
+  background: var(--bg2); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 16px; margin-bottom: 10px;
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.tip-icon-wrap {
+  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+.tip-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.tip-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+/* INSTALL BANNER */
+.install-banner {
+  background: rgba(91,79,255,0.15); border: 0.5px solid rgba(91,79,255,0.35);
+  border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+.install-banner-text { flex: 1; font-size: 13px; color: var(--text2); line-height: 1.5; }
+.install-banner-text strong { color: var(--text); display: block; margin-bottom: 2px; }
+.install-btn-sm {
+  font-size: 12px; padding: 7px 14px; border-radius: 99px;
+  background: var(--accent); color: #fff; border: none;
+  font-family: 'Onest', sans-serif; font-weight: 500; cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* BOTTOM NAV */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(10,10,15,0.92); backdrop-filter: blur(20px);
+  border-top: 0.5px solid var(--border);
+  display: flex; padding: 8px 0 24px; z-index: 20;
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px; background: none; border: none; cursor: pointer;
+  color: var(--text3); font-family: 'Onest', sans-serif; font-size: 11px;
+  transition: color 0.2s;
+}
+.nav-item.active { color: var(--accent2); }
+.nav-icon { font-size: 22px; line-height: 1; }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="shield-anim">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M40 8L12 20v20c0 16 12 28 28 32 16-4 28-16 28-32V20L40 8z" fill="#5b4fff" opacity="0.25"/>
+      <path d="M40 14L18 24v16c0 12 9 22 22 25 13-3 22-13 22-25V24L40 14z" fill="#5b4fff" opacity="0.5"/>
+      <path d="M33 40l5 5 9-9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="splash-logo">АнтиФрод</div>
+  <div class="splash-sub">AI-ЗАЩИТА ОТ МОШЕННИКОВ</div>
+</div>
+
+<div id="app">
+  <div class="header">
+    <div class="header-inner">
+      <div class="logo-mark">
+        <div class="logo-icon">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 2L3 5v5c0 4 3 7 7 8 4-1 7-4 7-8V5L10 2z" fill="white"/></svg>
+        </div>
+        <span class="logo-text">АнтиФрод</span>
+      </div>
+      <div class="header-stats">
+        <div class="stat-pill">Проверено <span id="stat-n">0</span></div>
+        <div class="stat-pill" style="color:var(--danger)">Угроз <span id="stat-d" style="color:var(--danger)">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('check',this)">Проверить</button>
+    <button class="tab-btn" onclick="switchTab('history',this)">История</button>
+    <button class="tab-btn" onclick="switchTab('tips',this)">Советы</button>
+  </div>
+
+  <div class="content">
+    <div id="tab-check" class="panel active">
+      <div id="install-area"></div>
+      <div class="input-card">
+        <div class="src-row" id="src-row">
+          <button class="src-btn active" onclick="setSrc(this,'СМС')">📱 СМС</button>
+          <button class="src-btn" onclick="setSrc(this,'Email')">📧 Email</button>
+          <button class="src-btn" onclick="setSrc(this,'Мессенджер')">💬 Мессенджер</button>
+          <button class="src-btn" onclick="setSrc(this,'Звонок')">📞 Звонок</button>
+          <button class="src-btn" onclick="setSrc(this,'Объявление')">📋 Объявление</button>
+        </div>
+        <textarea id="msg-input" class="msg-textarea"
+          placeholder="Вставьте сюда подозрительное сообщение, ссылку или описание ситуации..."></textarea>
+        <div class="char-count" id="char-count">0 / 1000</div>
+      </div>
+      <button class="check-btn" id="check-btn" onclick="checkMsg()">
+        🔍 Проверить на мошенничество
+      </button>
+      <div id="result-area"></div>
+    </div>
+
+    <div id="tab-history" class="panel">
+      <div id="history-list">
+        <div class="history-empty">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5"/><path d="M24 16v8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <div>Проверок пока нет</div>
+          <div style="font-size:12px;margin-top:6px;">Вернитесь на вкладку «Проверить»</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-tips" class="panel">
+      <div class="tips-header">Как не попасться</div>
+      <div class="tip-item">
+        <div class="tip-icon-wrap" style="background:rgba(255,71,87,0.15)">🔒</div>
+        <div><div class="tip-title">Никогда не сообщайте коды</div><div class="tip-desc">Банки и госорганы никогда не просят SMS-коды, пароли или CVV по телефону или в сообщениях</div></div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon-wrap" style="background:rgba(255,165,2,0.15)">🔗</div>
+        <div><div class="tip-title">Проверяйте ссылки</div><div class="tip-desc">Мошенники копируют дизайн банков. bank-0nline.ru ≠ sberbank.ru. Смотрите на адрес внимательно</div></div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon-wrap" style="background:rgba(255,165,2,0.15)">⏱</div>
+        <div><div class="tip-title">Срочность — красный флаг</div><div class="tip-desc">«Действуйте прямо сейчас!», «Осталось 5 минут» — типичные приёмы давления. Не торопитесь</div></div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon-wrap" style="background:rgba(46,213,115,0.15)">🎁</div>
+        <div><div class="tip-title">Бесплатный сыр — в мышеловке</div><div class="tip-desc">Выигрыш в лотерею без участия, «перевод который нужно подтвердить» — классические схемы</div></div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon-wrap" style="background:rgba(91,79,255,0.15)">📞</div>
+        <div><div class="tip-title">Положите трубку</div><div class="tip-desc">При малейшем подозрении — завершите звонок. Перезвоните в банк по номеру с карты</div></div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon-wrap" style="background:rgba(255,71,87,0.15)">👤</div>
+        <div><div class="tip-title">«Служба безопасности» — фейк</div><div class="tip-desc">Настоящая служба безопасности банка никогда не попросит перевести деньги «на безопасный счёт»</div></div>
+      </div>
+      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-top:6px;text-align:center;">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Получили подозрительный звонок?</div>
+        <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:var(--accent2)">8-800-100-14-10</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;">Горячая линия Банка России (бесплатно)</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-check" onclick="switchTab('check',null,'nav-check')">
+      <span class="nav-icon">🛡</span><span>Проверить</span>
+    </button>
+    <button class="nav-item" id="nav-history" onclick="switchTab('history',null,'nav-history')">
+      <span class="nav-icon">🕐</span><span>История</span>
+    </button>
+    <button class="nav-item" id="nav-tips" onclick="switchTab('tips',null,'nav-tips')">
+      <span class="nav-icon">💡</span><span>Советы</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+let srcType = 'СМС';
+let history = JSON.parse(localStorage.getItem('af_history') || '[]');
+let stats = JSON.parse(localStorage.getItem('af_stats') || '{"n":0,"d":0}');
+let deferredPrompt = null;
+
+updateStats();
+renderHistory();
+
+setTimeout(() => {
+  document.getElementById('splash').classList.add('gone');
+}, 1200);
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  const area = document.getElementById('install-area');
+  area.innerHTML = `<div class="install-banner">
+    <div class="install-banner-text">
+      <strong>Установите приложение</strong>
+      Добавьте на главный экран для быстрого доступа
+    </div>
+    <button class="install-btn-sm" onclick="installApp()">Установить</button>
+  </div>`;
+}
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById('install-area').innerHTML = '';
+    });
+  }
+}
+
+function setSrc(btn, src) {
+  srcType = src;
+  document.querySelectorAll('.src-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+document.getElementById('msg-input').addEventListener('input', function() {
+  document.getElementById('char-count').textContent = this.value.length + ' / 1000';
+});
+
+function switchTab(tab, tabBtn, navId) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tabBtn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    tabBtn.classList.add('active');
+  }
+  if (navId) {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById(navId).classList.add('active');
+  }
+  const tabMap = { check:'nav-check', history:'nav-history', tips:'nav-tips' };
+  if (tabMap[tab]) {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabMap[tab]).classList.add('active');
+  }
+}
+
+function updateStats() {
+  document.getElementById('stat-n').textContent = stats.n;
+  document.getElementById('stat-d').textContent = stats.d;
+}
+
+async function checkMsg() {
+  const text = document.getElementById('msg-input').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('check-btn');
+  btn.disabled = true;
+  const ra = document.getElementById('result-area');
+  ra.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Анализирую сообщение...</span></div>`;
+
+  const prompt = `Ты эксперт по кибербезопасности. Проанализируй это сообщение типа "${srcType}" на признаки мошенничества.
+
+Сообщение: "${text}"
+
+Ответь ТОЛЬКО JSON без markdown:
+{"risk_level":"низкий"|"средний"|"высокий","risk_score":0-100,"danger_signs":[],"warning_signs":[],"positive_signs":[],"verdict":"1 предложение","explanation":"2-3 предложения","recommendation":"конкретный совет","fraud_type":null|"строка"}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content.map(i => i.text||'').join('').replace(/```json|```/g,'').trim();
+    const r = JSON.parse(raw);
+
+    stats.n++;
+    if (r.risk_score >= 60) stats.d++;
+    localStorage.setItem('af_stats', JSON.stringify(stats));
+    updateStats();
+
+    history.unshift({ text: text.substring(0,70), score: r.risk_score, level: r.risk_level, src: srcType, ts: Date.now() });
+    if (history.length > 50) history.pop();
+    localStorage.setItem('af_history', JSON.stringify(history));
+    renderHistory();
+
+    const scoreColor = r.risk_score >= 70 ? 'var(--danger)' : r.risk_score >= 40 ? 'var(--warn)' : 'var(--safe)';
+    const barColor = r.risk_score >= 70 ? 'var(--danger)' : r.risk_score >= 40 ? 'var(--warn)' : 'var(--safe)';
+    const rClass = r.risk_level === 'высокий' ? 'risk-high' : r.risk_level === 'средний' ? 'risk-med' : 'risk-low';
+    const rIcon = r.risk_level === 'высокий' ? '🚨' : r.risk_level === 'средний' ? '⚠️' : '✅';
+
+    const c = Math.PI * 2 * 28;
+    const dash = c * (1 - r.risk_score / 100);
+
+    const dTags = (r.danger_signs||[]).map(s=>`<span class="tag tag-d">${s}</span>`).join('');
+    const wTags = (r.warning_signs||[]).map(s=>`<span class="tag tag-w">${s}</span>`).join('');
+    const okTags = (r.positive_signs||[]).map(s=>`<span class="tag tag-ok">${s}</span>`).join('');
+    const allTags = dTags+wTags+okTags;
+
+    ra.innerHTML = `<div class="result-card">
+      <div class="result-hero">
+        <div class="score-ring">
+          <svg width="72" height="72" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+            <circle cx="36" cy="36" r="28" fill="none" stroke="${scoreColor}" stroke-width="5"
+              stroke-dasharray="${c}" stroke-dashoffset="${dash}" stroke-linecap="round"
+              style="transition:stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)"/>
+          </svg>
+          <div class="score-num">
+            <div class="score-val" style="color:${scoreColor}">${r.risk_score}</div>
+            <div class="score-max">/100</div>
+          </div>
+        </div>
+        <div class="result-info">
+          <div class="risk-badge ${rClass}">${rIcon} Риск: ${r.risk_level}</div>
+          <div class="result-verdict">${r.verdict}</div>
+          ${r.fraud_type ? `<div class="fraud-type">🎭 ${r.fraud_type}</div>` : ''}
+        </div>
+      </div>
+      ${allTags ? `<div class="result-section"><div class="section-label">Признаки</div><div class="tags-row">${allTags}</div></div>` : ''}
+      <div class="result-section"><div class="section-label">Анализ</div><div class="explain-text">${r.explanation}</div></div>
+      <div class="result-section"><div class="advice-box">💬 ${r.recommendation}</div></div>
+    </div>`;
+  } catch(e) {
+    ra.innerHTML = `<div style="padding:16px;color:var(--danger);font-size:14px">⚠️ Ошибка анализа. Проверьте соединение и попробуйте снова.</div>`;
+  }
+  btn.disabled = false;
+}
+
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!history.length) {
+    el.innerHTML = `<div class="history-empty"><svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5"/><path d="M24 16v8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div>Проверок пока нет</div><div style="font-size:12px;margin-top:6px;">Вернитесь на вкладку «Проверить»</div></div>`;
+    return;
+  }
+  const scoreColor = s => s >= 70 ? 'var(--danger)' : s >= 40 ? 'var(--warn)' : 'var(--safe)';
+  el.innerHTML = history.map(h => `<div class="hist-item">
+    <span class="hist-src">${h.src}</span>
+    <span class="hist-txt">${h.text}</span>
+    <span class="hist-score" style="color:${scoreColor(h.score)}">${h.score}</span>
+  </div>`).join('');
+}
+if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js"); }
+</script>
+
+</body>
+</html>
